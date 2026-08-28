@@ -1,0 +1,13 @@
+.kom{
+    border: 32px ridge #cc4432;
+    box-shadow: 29px 31px 12px -5px rgba(0,0,0,0.72);
+    -webkit-box-shadow: 29px 31px 12px -5px rgba(0,0,0,0.72);
+    -moz-box-shadow: 29px 31px 12px -5px rgba(0,0,0,0.72);
+}
+.center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        }
+body {
+             background-image: radial-gradient(circle, rgba(89, 231, 152, 1) 0%, rgba(255, 255, 255, 1) 40%, rgba(189, 131, 252, 1) 85%);}
