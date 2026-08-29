@@ -1,0 +1,1 @@
+This project focused on the simulation and implementation of a crossroad traffic-light control system using a fuzzy logic controller. As part of the practical component, we used LEDs to physically represent the traffic lights at the intersection, allowing us to visualize and demonstrate the system’s operation in real time.
