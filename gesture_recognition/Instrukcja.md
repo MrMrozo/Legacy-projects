@@ -1,6 +1,6 @@
 # Instrukcja obsługi
 
-![image desc](./ssapka.png)
+![image desc](./visual_help.png)
 
 * A - Kamera
 * B - Obszar w którym wychwytywane są gesty ręki
