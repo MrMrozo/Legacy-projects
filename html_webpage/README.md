@@ -1,0 +1,1 @@
+A simple yet functional web development project designed to demonstrate the practical application of HTML and PHP, with a primary focus on functionality, structure, and backend implementation rather than visual aesthetics or frontend design.
