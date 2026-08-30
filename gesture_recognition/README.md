@@ -1,0 +1,1 @@
+A Python-based application that uses a webcam to recognize various hand gestures and translate them into code. The application was developed using the Tkinter library to provide a graphical user interface. More detailed instructions are available in the “Instrukcja.md” file, written in Polish.
