@@ -1,0 +1,1 @@
+A collection of projects in R demonstrating proficiency in regression, classification, clustering, and various aspects of data analysis, along with broader competence in the R programming language. Files following the “advYYYY_N” naming convention correspond to Advent of Code exercises, where YYYY represents the year and N indicates the task number.
