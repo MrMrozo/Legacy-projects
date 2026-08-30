@@ -1,0 +1,72 @@
+---
+title: "adv2015_1"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+input <- readLines("data1")
+```
+
+Part1
+
+```{r}
+s <- readChar("data1", file.info("data1")$size)
+r <- str_count(string = s, pattern = '\\(') - str_count(s, '\\)')
+r
+```
+
+Part2
+
+```{r}
+pars <- strsplit(s, split = "")[[1]]
+floor <- 0
+step <- 1
+while (floor>-1) {
+  k <- pars[step]
+  if (k == "(") {
+    floor <- floor + 1
+  }
+  else {
+    floor <- floor - 1
+  }
+  step <- step + 1
+}
+step-1
+```
+
+Part1v2
+
+```{r}
+input %>% 
+  str_split("") %>%
+  unlist() %>% 
+  {ifelse(. == "(", 1, -1)} %>% 
+  sum()
+```
+
+Part2v2
+
+```{r}
+input %>% 
+  str_split("") %>%
+  unlist() %>% 
+  {ifelse(. == "(", 1, -1)} %>% 
+  cumsum() %>% 
+  {which(. < 0)} %>% 
+  .[1]
+```
+
+Part1v3
+
+```{r}
+input %>%
+  str_replace_all(pattern = "\\(", replacement = "+1") %>% 
+  str_replace_all(pattern = "\\)", replacement = "-1") %>% 
+  parse(text = .) %>% 
+  eval()
+```

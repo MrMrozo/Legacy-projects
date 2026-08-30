@@ -1,0 +1,279 @@
+---
+title: "Regresja"
+author: "Michał Mrozek"
+date: today
+lang: pl
+language: 
+  title-block-author-single: "Autor"
+  title-block-published: "Utworzono"
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: a11y
+    df-print: paged
+    toc: true
+    toc-depth: 4
+    code-fold: show
+    code-link: true
+    self-contained: true
+    code-tools: 
+      source: true
+editor: visual
+execute:
+  message: false
+  warning: false
+---
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+### 1. Uzupełnij swoje imię i nazwisko
+
+### 2. Załaduj potrzebne pakiety
+
+```{r}
+#| label: ładowanie potrzebnych pakietów
+library(tidyverse)
+library(ISLR2)
+library(skimr)
+library(rpart)
+library(rpart.plot)
+library(tidymodels)
+library(future)
+library(doFuture)
+library(vip)
+```
+
+### 3. Regresja
+
+> Będziesz potrzebować zbioru danych `Carseats` z pakietu `ISLR2`.
+
+##### (a) Zapoznaj się ze zbiorem `Carseats` (zobacz jego strukturę (`skimr`), opis zmiennych, a następnie wyświetl dane).
+
+```{r}
+data("Carseats")
+
+skim(Carseats)
+
+Carseats
+
+help("Carseats")
+```
+
+##### (b) Co oznacza zmienna `ShelveLoc`?
+
+-   ShelveLoc to factor z 3 poziomami wyrażający jakość lokalizacji produktu na półkach sklepowych.
+
+#### 3a. Regresja liniowa
+
+##### Przy użyciu `ggplot` wykonaj wykres rozrzutu: `Sales` vs `Price` (uważaj na to, jak należy zinterpretować ten zapis na wykresie, tzn. co jest zmienną $x$ a co $y$ ). Używając różnych kolorów dopasuj regresję liniową, kwadratową i sześcienną (na jednym wykresie z odpowiednią legendą informującą która krzywa określa który stopień; nie rysuj przedziału ufności).
+
+```{r}
+ggplot(Carseats, aes(x = Price, y = Sales)) +
+  geom_point() +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ x,
+    aes(color = "Liniowa"),
+    se = FALSE
+  ) +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ poly(x,2),
+    aes(color = "Kwadratowa"),
+    se = FALSE
+  ) +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ poly(x,3),
+    aes(color = "Sześcienna"),
+    se = FALSE
+  ) +
+  labs(color = "Model") +
+  theme_minimal()
+```
+
+##### Stwórz model regresji liniowej wykorzystując zmienną `ShelveLoc` i 6 innych losowo wybranych zmiennych, odzwierciedlający wpływ wszystkich tych zmiennych na zmienną `Sales` (do losowania tych zmiennych za ziarno losowania przyjmij [**numer swojego indeksu**]{style="color: aqua"}). Nazwij go `model_lm`. Zobacz podsumowanie modelu i odczytaj współczynnik $R^2$.
+
+```{r}
+set.seed(358964)
+
+zmienne <- setdiff(names(Carseats), c("Sales","ShelveLoc"))
+
+wylosowane <- sample(zmienne,6)
+
+wylosowane
+
+model_lm_pre <- as.formula(
+  paste(
+    "Sales ~ ShelveLoc +",
+    paste(wylosowane, collapse = " + ")
+  )
+)
+
+model_lm <- lm(model_lm_pre,
+               data = Carseats)
+
+summary(model_lm)
+```
+
+-   R\^2 = 0.6106
+
+##### Co oznacza współczynnik przy `ShelveLocGood`? Jak należy go zinterpretować (pamiętaj o jednostkach sprzedaży)? Co możesz powiedzieć o istotności statystycznej tej zmiennej w Twoim modelu?
+
+-   ShelveLocGood pokazuje jaka jest różnica w sprzedarzach (w tysiącach) jak zmienimy lokalizacje w sklepie z Bad na Good. W tym przypadku jest to około 4.8. Ta zmienna jest istotna statystycznie bo jej p wartość jest bardzo mała.
+
+#### 3b. Drzewo regresyjne
+
+##### Biorąc pod uwagę te same zmienne co w modelu regresji liniowej, przy użyciu pakietu `rpart` najpierw utwórz model regresji o nazwie `drzewo` , a następnie narysuj je (używając odpowiedniego pakietu).
+
+```{r}
+drzewo <- rpart(
+  model_lm_pre,
+  data = Carseats
+)
+
+rpart.plot(drzewo)
+```
+
+##### Czy któreś ze zmiennych **nie** zostały uznane za ważne w procesie tworzenia drzewa? Jeśli tak, to które?
+
+-   Zmienne "US", "Urban" oraz "Education" nie zostały użyte.
+
+##### Ile (dokładnie) obserwacji wpadło do węzła nr 13. Czy to jest liść? Jeśli w Twoim drzewie nie ma węzła o tym numerze, to weź pod uwagę najbliższy nieparzysty numer węzła.
+
+```{r}
+drzewo$frame["13",]
+```
+
+-   W węźle 13 jest 9 obserwacji i jest to liść.
+
+##### Udałeś/udałaś się na spotkanie z klientem. Nie zabrałeś komputera, ale jako miłośnik przyrody, rysunki drzew zawsze nosisz przy sobie :) Klient nalega na prognozę sprzedaży w przypadku: `Urban = Yes`, `Population = 200`, `Income = 60`, `Advertising = 7`, `Age = 40`, `CompPrice = 120`, `ShelveLoc = Medium`, `US = No`, `Price = 105`, `Education = 11`. Patrząc na swoje drzewo prognozuj sprzedaż. Pamiętaj o odpowiedniej jednostce.
+
+-   **Twoja odpowiedź: Około 9400.**
+
+#### 3c. Random Forest + trening hiperparametrów
+
+##### Z wykorzystaniem pakietu `tidymodels` wykonaj trening hiperparametrów dla modelu lasów losowych z uwzględnieniem następujących kroków:
+
+-   wszystkie losowe procedury wykonaj z ustawieniem swojego wcześniejszego ziarna losowania
+
+-   cała procedura powinna wykorzystywać odpowiednie funkcje z pakietu `tidymodels`
+
+-   pamiętaj, że możesz "zamrozić" dany chunk, żeby przy każdorazowym renderowaniu dokumentu nie przeliczał na nowo wszystkiego co tam jest zawarte i żeby mieć pewność, że komentowane przez Ciebie treści i podsumowania są właściwe
+
+<!-- -->
+
+-   do tworzenia modelu wykorzystaj wszystkie zmienne (nadal przewidujesz `Sales`)
+
+-   podziel dane na zbiór treningowy i testowy (prop = 0.8), trening hiperparametrów zrób z wykorzystaniem kroswalidacji na zbiorze treningowym
+
+-   użyj modelu z "silnikiem" `ranger`
+
+-   trenowane 2 hiperparametry: liczba drzew i liczba zmiennych losowanych do podziału w każdym węźle (reszta parametrów - domyślna)
+
+-   w siatce hiperparametrów do treningu wykorzystaj wartości:
+
+    <div>
+
+    -   liczba drzew: 100, 500, 1000,
+
+    -   liczba zmiennych losowanych do podziału: 3, 4, 5
+
+    -   w systemie: "każdy z każdym", tzn. 9 różnych modeli
+
+    </div>
+
+-   zoptymalizuj czas treningu przy użyciu pakietu do obliczeń równoległych (future, doFuture)
+
+-   wyświetl wyniki dla wszystkich modeli z informacją o otrzymanych wartościach: RMSE, MAE i $R^2$ (wszystko w jednej tabelce)
+
+-   przy użyciu odpowiedniej funkcji z pakietu `tidymodels` wyświetl 4 modele z najlepszą wartością RMSE (jakie parametry okazały się najlepsze?)
+
+-   dokończ budowę tego najlepszego modelu, a następnie sprawdź jakie wartości wszystkich 3 metryk przyjmuje ten model na zbiorze testowym. Odpowiedz na pytanie, jak te wartości wypadają w porównaniu do wcześniejszych kroswalidacyjnych prognoz.
+
+```{r}
+set.seed(358964)
+split <- initial_split(Carseats,
+                       prop = 0.8)
+
+train <- training(split)
+test <- testing(split)
+folds <- vfold_cv(train)
+
+recipe_rf <-
+  recipe(Sales ~ ., data = train)
+
+rf_model <-
+  rand_forest(
+    trees = tune(),
+    mtry = tune()
+  ) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+wf <-
+  workflow() %>%
+  add_recipe(recipe_rf) %>%
+  add_model(rf_model)
+
+grid <-
+  crossing(
+    trees = c(100,500,1000),
+    mtry = c(3,4,5)
+  )
+
+plan(multisession)
+
+registerDoFuture()
+
+wyniki <-
+  tune_grid(
+    wf,
+    resamples = folds,
+    grid = grid,
+    metrics = metric_set(rmse, mae, rsq)
+  )
+
+collect_metrics(wyniki)
+
+show_best(
+  wyniki,
+  metric = "rmse",
+  n = 4
+)
+
+best_params <-
+  select_best(
+    wyniki,
+    metric = "rmse"
+  )
+
+best_params
+
+final_wf <-
+  finalize_workflow(
+    wf,
+    best_params
+  )
+
+final_fit <-
+      fit(final_wf,
+      data = train)
+
+pred <-
+  predict(final_fit,
+          test) %>%
+  bind_cols(test)
+
+metrics(
+  pred,
+  truth = Sales,
+  estimate = .pred
+)
+```
+
+Rmse na testowym trochę odbiega od predykcji kroswalidacyjnej. Może to oznaczać lekkie przeuczenie modelu.

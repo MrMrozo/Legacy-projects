@@ -1,0 +1,42 @@
+---
+title: "adv2015_2"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+input <- readLines("advofcode2")
+```
+
+```{r}
+input2 <- str_split(input, "x")
+```
+
+```{r}
+papier <- function(x) {
+  x <- sort(as.numeric(x))
+  3 * (x[1] * x[2]) + 2 * (x[1] * x[3] + x[2] * x[3]) 
+}
+```
+
+```{r}
+input2 %>% 
+  map(papier) %>% 
+  unlist() %>% 
+  sum()
+```
+
+```{r}
+ribbon <- function(x) {
+  x <- sort(as.numeric(x))
+  2 * sum(x[-3]) + prod(x)
+}
+```
+
+```{r}
+input2 %>% 
+  map(ribbon) %>% 
+  unlist() %>% 
+  sum()
+```

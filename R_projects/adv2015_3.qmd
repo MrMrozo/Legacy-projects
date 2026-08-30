@@ -1,0 +1,44 @@
+---
+title: "adv2015_3"
+format: html
+editor: visual
+---
+
+```{r}
+input <- readLines("advofcode3") %>% 
+  str_split_1("")
+input %>% 
+  head(4)
+```
+
+```{r}
+ruch_X <- c("^" = 0, "v" = 0, "<" = -1, ">" = 1)
+ruch_y <- c("^" = 1, "v" = -1, "<" = 0, ">" = 0)
+```
+
+```{r}
+tibble(x = cumsum(c(0, ruch_X[input])),
+       y = cumsum(c(0, ruch_y[input]))) %>% 
+  unique() %>% 
+  nrow()
+```
+
+```{r}
+input1 <- input[c(TRUE, FALSE)]
+input2 <- input[c(FALSE, TRUE)]
+```
+
+```{r}
+domy <- function(instr){
+  tibble(x = cumsum(c(0, ruch_X[instr])),
+       y = cumsum(c(0, ruch_y[instr])))
+}
+```
+
+```{r}
+domy(input1) %>% 
+  bind_rows(domy(input2)) %>% 
+  #rbind(domy(input2)) %>% 
+  unique() %>% 
+  nrow()
+```

@@ -1,0 +1,124 @@
+---
+title: "Zadaniw zaliczeniowe: Analiza danych"
+author: "Michał Mrozek"
+date: 07 02 2026
+lang: pl
+language: 
+  title-block-author-single: "Autor"
+  title-block-published: "Utworzono"
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: arrow
+    df-print: paged
+    toc: true
+    toc-depth: 4
+    code-fold: show
+    code-link: true
+    self-contained: true
+    code-tools: 
+      source: true
+# editor: visual
+execute:
+  message: false
+  warning: false
+---
+
+Ładujemy potrzebne biblioteki.
+```{r}
+library(tidyverse)
+```
+
+Jako zestaw danych wybrałem dane dotyczące anime zebrane ze strony MAL (MyAnimeList) w roku 2020. Ten zestaw danych został pobrany ze strony Kaggle pod tytułem "Anime Recommendation Database 2020".
+```{r}
+dane_raw <- read_csv("anime.csv")
+```
+
+```{r}
+dane_raw
+```
+
+
+Przed przejściem do zapytań oraz wykresów pozbywamy się pozycji których Ocena (Score) jest nieznana (Ozanacza to zazwyczaj, że dana seria nie została oceniona wystarczającą ilość razy). Zmienimy także typ kolumny Ocena na numeryczną, będzie to potem potrzebne, aby móc przedstawić wyniki na wykresach.
+```{r}
+dane <- dane_raw %>% 
+  filter(Score != "Unknown") %>% 
+  mutate(Score = as.numeric(Score))
+```
+
+Możemy wyświetlić wyczyszczone dane.
+```{r}
+dane
+```
+
+# Zapytania
+
+## Pierwsze zapytanie: 
+Wyświetlamy anime wprodukowane przez studio "MAPPA", z oceną powyżej 7 oraz porządkujemy je malejąco ze względu na ocenę. Wyświetlanie ograniczamy do nazwy, oceny i studiów.
+```{r}
+dane %>% 
+  filter(str_detect(Studios, "MAPPA"), Score > 7) %>% 
+  arrange(desc(Score)) %>% 
+  select(Name, Score, Studios)
+```
+
+## Drugie zapytanie: 
+Wyświetlamy anime, które są komedią i porządkujemy malejąco ze względu na ilość osób, które przstały oglądać daną serię. Wyświetlanie ograniczamy do nazwy, gatunków i ilości porzuceń.
+```{r}
+dane %>% 
+  filter(str_detect(Genres, "Comedy")) %>% 
+  arrange(desc(Dropped)) %>% 
+  select(Name, Genres, Dropped)
+```
+
+## Trzecie zapytanie: 
+Wyświetlamy anime z gatunku Sci-Fi, które są oryginalną produkcją (nie adaptacją) oraz nie są oznaczone wiekowo PG (dla dzieci). Potem porządkujemy je ze względu na ocenę. Wyświetlanie ograniczamy do nazwy, oceny, gatunków oraz oznaczenia wiekowego.
+```{r}
+dane %>% 
+  filter(str_detect(Genres, "Sci-Fi"), Source == "Original", Rating != "PG - Children") %>%
+  arrange(desc(Score)) %>% 
+  select(Name, Score, Genres, Rating)
+  
+```
+
+# Wykresy
+
+## Pierwszy wykres: 
+Wykres pudełkowy dzielący anime ze względu na typ i pokazujący oceny. Widzimy, że filmy oraz serie TV mają najwyższe średnie oceny, ale możemy zauważyć też, że wiele pozycji wystaje poza zakres pudełek na naszym wykresie (szczególnie TV).
+```{r}
+dane %>% 
+  ggplot() +
+  geom_boxplot(aes(Type, Score, fill = Type)) +
+  scale_fill_brewer("", palette = 4) +
+  theme_minimal()
+```
+## Drugi wykres: 
+Histogramy podzielone na typy pokazujące oceny. Kolumny dzielone co połowę oceny.
+```{r}
+dane %>% 
+  ggplot() + 
+  geom_histogram(aes(Score, fill = Type), colour = "grey30", breaks = seq(1, 10, by = 0.5)) +
+  scale_x_continuous(breaks = seq(1, 10, by = 1)) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "", y = "") +
+  scale_fill_brewer("", palette = 4) +
+  facet_wrap(~ Type) +
+  theme_minimal()
+```
+## Trzeci wykres: 
+Wykres punktowy pokazujący zależność między ilością fanów, a oceną. Widzimy, że znaczna większość pozycji posiada relatywnie niewielką ilość fanów w porównaniu do kilku najwięszych serii.
+```{r}
+dane %>% 
+  ggplot(aes(x = Members, y = Score)) +
+  geom_point(alpha = 0.5, color = "blue") + 
+  geom_smooth(color = "red") +
+  labs(x = "Ilość Fanów", y = "Ocena")
+```
+Widzimy, że mediana wynosi tylko 5279, a maksimum to aż 2589552.
+```{r}
+dane$Members %>% 
+  summary()
+```
+

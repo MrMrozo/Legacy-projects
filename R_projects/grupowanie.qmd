@@ -1,0 +1,223 @@
+---
+title: "Grupowanie"
+author: "Michał Mrozek"
+date: today
+lang: pl
+language: 
+  title-block-author-single: "Autor"
+  title-block-published: "Utworzono"
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: a11y
+    df-print: paged
+    toc: true
+    toc-depth: 4
+    code-fold: show
+    code-link: true
+    self-contained: true
+    code-tools: 
+      source: true
+editor: visual
+execute:
+  message: false
+  warning: false
+---
+
+### 1. Imię Nazwisko: Michał Mrozek
+
+### 2. Załaduj pakiety, z których będziesz korzystać
+
+```{r}
+#| label: ładowanie potrzebnych pakietów
+library(tidyverse)
+library(cluster.datasets)
+library(factoextra)
+# Edytuj
+```
+
+### 3. Klastry
+
+> Będziesz potrzebować zbioru danych `all.mammals.milk.1956` z pakietu `cluster.datasets`. Aby załadować ten zbiór danych trzeba użyć funkcji `data()`.
+
+##### (a) Załaduj i wyświetl zbiór danych `all.mammals.milk.1956`.
+
+```{r}
+data('all.mammals.milk.1956')
+dataset <- all.mammals.milk.1956
+```
+
+W jakich jednostkach podane są wartości poszczególnych składników mleka? (Skorzystaj z pomocy opisującej ten zbiór danych.)
+
+```{r}
+help('all.mammals.milk.1956')
+```
+
+-   **Twoja odpowiedź: Wartości są podane w procentach.**
+
+##### (b) Poniżej znajdziesz dane dotyczące mleka ludzkiego. Wyszukaj (np. w internecie) dane dotyczące mleka krowiego, koziego i jakiegoś innego ssaka, którego nie ma we wczytanym zbiorze (nie wybieraj żadnej małpy człekokształtnej). Poniżej wstaw zdjęcie (z podpisem) wybranego przez siebie ssaka, a następnie uzupełnij wcześniejszą ramkę danych o te wszystkie dodatkowe informacje i zapisz jako `mammals`.
+
+Wybrany przeze mnie zwierzak (foto):
+
+![](images/clipboard-914006034.png)
+
+```{r}
+ Man <- tibble(name = "Man", 
+               water = 88.1,
+               protein = 0.85,
+               fat = 0.4,
+               lactose = 7.0,
+               ash = 0.2)
+ 
+ Cow <- tibble(name = "Cow",
+               water = 87.5,
+               protein = 2.9,
+               fat = 4.5,
+               lactose = 4.1,
+               ash = 0.8)
+
+ Goat <- tibble(name = "Goat", 
+               water = 88.9,
+               protein = 3.1,
+               fat = 3.5,
+               lactose = 4.4,
+               ash = 0.7)
+
+ Platypus <- tibble(name = "Platypus", 
+               water = 60.9,
+               protein = 8.2,
+               fat = 22.2,
+               lactose = 0.1,
+               ash = 0.5)
+ mammals <- rbind(dataset, Man, Cow, Goat, Platypus)
+```
+
+```{r}
+mammals
+```
+
+##### (c) Ze względu na grupowanie wygodniejsze będzie utworzenie nazw wierszy przy wykorzystaniu kolumny `name` (tej kolumny nie powinno już być w wyjściowym zbiorze danych). Efekt końcowy zapisz w zmiennej `ssaki`. Sprawdź jak wygląda utworzony zbiór wyświetlając cztery pierwsze wiersze.
+
+```{r}
+# Uzupełnij
+ssaki <- mammals %>% 
+          column_to_rownames("name")
+
+ssaki %>% head(n = 4)
+```
+
+##### (d) Przy użyciu funkcji `scale()` z domyślnymi parametrami "przeskaluj' dane, a uzyskany w ten sposób zbiór zapisz w zmiennej `ssaki_scaled`.
+
+```{r}
+ssaki_scaled <- ssaki %>% scale()
+```
+
+#### Grupowanie metodą $k$-średnich
+
+##### Przy użyciu algorytmu $k$-średnich wyznacz podział zbioru `ssaki_scaled` na 3 klastry. Jako ziarno losowania przyjmij [**numer swojego indeksu**]{style="color: aqua"}. Aby uniknąć przypadkowego wyniku wystartuj algorytm 25 razy, a maksymalną liczbę iteracji ustaw na 100. Wyświetl wyniki.
+
+```{r}
+set.seed(358964)
+klastry <- ssaki_scaled %>% 
+  kmeans(centers = 3, iter.max = 100, nstart = 25)
+klastry
+```
+
+Odczytaj ile elementów ma najmniejszy z klastrów i kto do niego należy? (W tym celu do ramki `mammals` dołącz kolumnę z numerem grupy.) Czy według Ciebie ma to sens? Czym to uzasadniasz?
+
+```{r}
+mammals_grupy <- mammals %>% 
+  mutate(nr_grupy = klastry$cluster)
+
+mammals_grupy[mammals_grupy$nr_grupy == 3, ]
+
+```
+
+-   Są to ssaki o najmniejszym procencie wody i największym procencie tłuszczu. Wszystkie 4 są przystosowane do życia w wodzie.
+
+Wypisz (w formie wektora) całą grupę, w której znalazł się człowiek. Wykorzystaj w tym celu ramkę `mammals_grupy`.
+
+```{r}
+mammals_grupy %>% filter(nr_grupy == filter(mammals_grupy, name == 'Man')$nr_grupy)
+```
+
+##### Wykorzystując odpowiednią funkcję z pakietu `factoextra` przedstaw na wykresie otrzymany podział na grupy (zadbaj o to, żeby wykres był czytelny).
+
+```{r}
+#| fig-width: 12
+#| fig-height: 10
+
+fviz_cluster(klastry, data = ssaki_scaled,
+palette = c("darkblue", "darkred", "darkgreen"),
+ellipse.type = "euclid", # Concentration ellipse
+star.plot = TRUE, # Add segments from centroids to items
+repel = TRUE, # Avoid label overplotting (slow)
+ggtheme = theme_minimal()
+)
+```
+
+#### Grupowanie hierarchiczne
+
+##### Zastosuj teraz metody grupowania hierarchicznego z łączeniem *complete*, *average*, a następnie *single*. Modele nazwij odpowiednio:`model_complete`, `model_average`, `model_single`. Aby narysować stosowne dendrogramy wraz z zaznaczonym podziałem na 3 klastry, wykorzystaj funkcję `fviz_dend()` z pakietu `factoextra`. Zadbaj o czytelność wykresów w dokumencie .html (odpowiedni rozmiar wykresów, kolory, wyraźnie zaznaczony podział na grupy, itd.).
+
+```{r}
+klastry_h <- ssaki_scaled %>% 
+  get_dist(method = "euclidean") %>% 
+  hclust(method = "complete")
+
+fviz_dend(klastry_h, k = 3, # Cut in four groups
+cex = 0.5, # label size
+k_colors = c("darkblue", "darkred", "darkgreen"),
+color_labels_by_k = TRUE, # color labels by groups
+rect = TRUE, # Add rectangle around groups
+main = "model_complete"
+)
+```
+
+```{r}
+klastry_h <- ssaki_scaled %>% 
+  get_dist(method = "euclidean") %>% 
+  hclust(method = "average")
+
+fviz_dend(klastry_h, k = 3, # Cut in four groups
+cex = 0.5, # label size
+k_colors = c("darkblue", "darkred", "darkgreen"),
+color_labels_by_k = TRUE, # color labels by groups
+rect = TRUE, # Add rectangle around groups
+main = "model_average"
+)
+```
+
+```{r}
+klastry_h <- ssaki_scaled %>% 
+  get_dist(method = "euclidean") %>% 
+  hclust(method = "single")
+
+fviz_dend(klastry_h, k = 3, # Cut in four groups
+cex = 0.5, # label size
+k_colors = c("darkblue", "darkred", "darkgreen"),
+color_labels_by_k = TRUE, # color labels by groups
+rect = TRUE, # Add rectangle around groups
+main = "model_single"
+)
+```
+
+Czy ta najmniejsza grupa, o której była mowa przy metodzie $k$-średnich "się ostała"?
+
+-   Są w niej pewne zmiany. Wygląda na to, że delfin i foka to jej stałe elementy, a dziobak i wieloryb czasem są a czasem nie(ma to sens ze względu na zawartość wody i tłuszczu).
+
+##### Wykorzystaj narysowane dendrogramy do odpowiedzi na pytania:
+
+Do kogo w tym zbiorze danych najbardziej podobny jest człowiek? Czy użyta metoda grupowania hierarchicznego miała wpływ na wynik?
+
+-   Najbliżej jest do konia, a potem do małpy i orangutana.
+
+Które dwa zwierzęta są do siebie najbardziej podobne pod względem składu mleka?
+
+-   Najbliżej jest sarna i renifer.
+
+Które podobieństwo najbardziej Cię dziwi/zaskakuje? Czy znajdujesz na to jakieś wyjaśnienie? (Możesz sprawdzić w sieci, czy da się to jakoś dobrze wytłumaczyć.)
+
+-   Dziwne, że koń jest bliżej z człowiekiem, niż małpy (przynajmniej w niektórych przypadkach).

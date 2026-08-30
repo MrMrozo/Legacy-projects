@@ -1,0 +1,28 @@
+---
+title: "adv2015_5"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+input <- readLines("nices")
+```
+
+```{r}
+input %>% 
+  str_subset(pattern = "[aieou].*[aieou].*[aieou]") %>% 
+  str_subset(pattern = "([A-Za-z)\\1") %>% 
+  str_subset(pattern = "ab|cd|pq|xy", negate = TRUE) %>% 
+  length()
+```
+
+```{r}
+input %>% 
+  str_subset(pattern = "(..).*\\1") %>% 
+  str_subset(pattern = "(.).\\1") %>% 
+  length()
+```

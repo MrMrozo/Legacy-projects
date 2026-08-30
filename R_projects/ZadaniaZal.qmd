@@ -1,0 +1,193 @@
+---
+title: "Zadania zaliczeniowe"
+author: "Michał Mrozek"
+date: 07 02 2026
+lang: pl
+language: 
+  title-block-author-single: "Autor"
+  title-block-published: "Utworzono"
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: arrow
+    df-print: paged
+    toc: true
+    toc-depth: 4
+    code-fold: show
+    code-link: true
+    self-contained: true
+    code-tools: 
+      source: true
+# editor: visual
+execute:
+  message: false
+  warning: false
+---
+
+Ładujemy potrzebne biblioteki.
+```{r}
+library(tidyverse)
+library(microbenchmark)
+```
+
+# Zadanie 1 (Advent of Code: 2017 dzień 1)
+
+Zadanie dostarcza nam ciąg cyfr, a naszym zadaniem jest policzenie sumy tych cyfr, dla których następna cyfra jest taka sama jak ona sama. Dla ostatniej cyfry, za cyfrę następną uznajemy pierwszą cyfrę naszego ciągu.
+
+Wczytujemy dane z zadania.
+
+```{r}
+input1 <- readLines("zad1dane")
+```
+
+Dodaję pierwszą cyfrę naszego ciągu na koniec, aby uwzględnić cykliczną naturę wejścia.
+
+```{r}
+input1_plus <- str_flatten(c(input1, str_sub(input1, 1, 1)))
+```
+
+# Sposób 1:
+
+```{r}
+# Tworzę wektor na którym mam tylko te fragmenty wejścia,
+# gdzie te same cyfry występują po sobie.
+krotki <- input1_plus %>% 
+  str_extract_all("(\\d)\\1+") %>% 
+  unlist()
+# Tworzę wektor, na którym zapisuję jakie cyfry się powtarzają
+co <- krotki %>% 
+  str_sub(1,1) %>% 
+  as.numeric()
+# Tworzę wektor, na którym zapisuję ile razy powtarzają się cyfry.
+# Zliczam o jeden mniej, bo liczymy tylko to dla którego następna cyfra jest
+# taka sama, więc ostatnia cyfra nie jest liczona.
+ile <- krotki %>%
+  str_length()-1
+
+#Mnożę cyfry z ich krotnością, a potem sumuję aby otrzymać ostateczny wynik.
+razem <- co * ile
+razem %>% 
+  sum()
+```
+
+# Sposób 2:
+
+Początek oraz koniec dokładnie tak samo. Gdy długość danego elementu wynosi 2 zapamiętujemy wartość tej cyfry, gdy ciąg jest dłuższy mnożymy wartość cyfry przez długość ciągu-1 (na tej samej zasadzie co w sposobie 1). Na koniec sumujemy cały wektor.
+
+```{r}
+input1_plus %>% 
+    str_extract_all("(\\d)\\1+") %>% 
+    unlist() %>% 
+  { ifelse(str_length(.) == 2, str_sub(., 1, 1), 
+           as.character((str_length(.)-1)*as.numeric(str_sub(., 1, 1)))) } %>% 
+  as.numeric() %>% 
+  sum()
+```
+
+# Zadanie 2 (Advent of Code: 2019 dzień 8)
+
+Zadanie dostarcza ciąg złożony z 0,1,2. Każde 150 cyfr reprezentuje jedną "warstwę". Mamy za zadanie znaleźć warstwę z najmniejszą ilością zer, a następnie pomnożyć ilość 1 przez ilość dwójek na tej warstwie.
+
+Wczytuję dane do zadania.
+
+```{r}
+input2 <- readLines("zad2dane")
+```
+
+# Sposób 1:
+
+```{r}
+sposob1 <- function(input2) {
+
+# Rozdzielam wczytany ciąg znaków na wektor o elementach jednoznakowych.
+input2s <- input2 %>% 
+  str_split_1("")
+  
+mini <- 150 # Tu zapiszemy najmnięjszą liczbę zer na warstwie.
+zera <- 0 # Licznik zer.
+ktory <- 0 # Licznik elementu na którym jesteśmy.
+marker <- 0 # Zapamiętujemy warstwę z najmniejszą ilością zer.
+
+for (el in input2s) {
+  
+  ktory <- ktory + 1
+  
+  if (el == 0) {
+    zera <-  zera + 1
+  }
+  
+  # Co 150 elementów wchodzimy na nową warstwę.
+  if (ktory %% 150 == 0) {
+    if (mini > zera) {
+      mini <- zera
+      marker <- ktory
+    }
+    zera <- 0
+  }
+}
+# Warstwa o najmniejszej ilości zer.
+warstwa <- input2s[(marker-149):(marker)]
+
+
+jedynki <- 0 # Ilość jedynek w naszej warstwie.
+dwojki <- 0 # Ilość dwójek w naszej warstwie.
+
+
+for (el in warstwa) {
+  if (el == 1) {
+    jedynki <- jedynki + 1
+  }
+  if (el == 2) {
+    dwojki <- dwojki + 1
+  }
+}
+wynik <- jedynki * dwojki
+wynik
+}
+```
+
+```{r}
+sposob1(input2)
+```
+
+# Sposób 2:
+
+Najpierw dzielimy wejście na warstwy (kawałki po 150 elementów), a następnie wybieramy tą, która ma najmniej zer. Następnie liczymy ilość jedynek oraz dwójek w tej warstwie i mnożymy aby uzyskać ostateczny wynik.
+
+```{r}
+sposob2 <- function(input2) {
+warstwa <- input2 %>% 
+  str_sub(seq(1, str_length(.)-149, 150), seq(150, str_length(.), 150)) %>% 
+  { .[which.min(str_count(., "0"))] }
+
+jedynki <- warstwa %>% str_count('1')
+dwojki <- warstwa %>% str_count('2')
+
+wynik <- jedynki * dwojki
+wynik
+}
+```
+
+```{r}
+sposob2(input2)
+```
+
+Porównanie dwóch sposobów rozwiązania zadania 2 przy pomocy microbenchmark.
+
+```{r}
+wyniki <- microbenchmark(sposob1(input2), sposob2(input2), times = 100)
+```
+
+Jak mogliśmy się spodziewać sposób 2 z użyciem podejścia wektorowego i wbudowanych funkcji jest dużo lepszy niż sposób pierwszy oparty o pętle for.
+
+```{r}
+wyniki %>% 
+  summary()
+```
+
+```{r}
+autoplot(wyniki)
+```
+

@@ -1,0 +1,182 @@
+---
+title: "k-means"
+author: "Grażyna Łydzińska"
+date: today
+lang: pl
+language: 
+  title-block-author-single: "Autor"
+  title-block-published: "Utworzono"
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: a11y
+    df-print: paged
+    toc: true
+    toc-depth: 4
+    code-fold: show
+    code-link: true
+    self-contained: true
+    code-tools: 
+      source: true
+editor: visual
+execute:
+  message: false
+  warning: false
+---
+
+```{r}
+library(tidyverse)
+library(jpeg)
+library(reshape2)
+library(magick)
+```
+
+```{r}
+obraz <- readJPEG("obrazy/bolek_i_lolek.jpg")
+dim(obraz)
+
+```
+
+```{r}
+obraz[1:2, 1:2, ]
+```
+
+```{r}
+b <- image_read("obrazy/bolek_i_lolek.jpg")
+plot(b)
+```
+
+```{r}
+obraz_R <- obraz[,,1] %>% melt(value.name = "R")
+obraz_G <- obraz[,,2] %>% melt(value.name = "G")
+obraz_B <- obraz[,,3] %>% melt(value.name = "B")
+
+obraz_R
+```
+
+```{r}
+obraz_ramka <- obraz_R %>% left_join(obraz_G) %>% left_join(obraz_B)
+obraz_ramka
+```
+
+```{r}
+obraz_ramka_hex <- obraz_ramka %>% 
+  mutate(prawdziwy_kolor_hex = rgb(R, G, B))
+
+obraz_ramka_hex
+```
+
+```{r}
+dim(obraz)[1] * dim(obraz)[2]
+```
+
+```{r}
+p1 <- obraz_ramka_hex %>% 
+  ggplot(aes(Var2, Var1)) +
+  geom_point(color = obraz_ramka_hex$prawdziwy_kolor_hex) +
+  scale_y_reverse() +
+  ggtitle("Oryginał") +
+  theme_void()
+
+p1
+```
+
+```{r}
+set.seed(562)
+klastry <- obraz_ramka_hex %>%
+  select(R, G, B) %>%
+  kmeans(centers = 8, iter.max = 100, nstart = 25)
+```
+
+```{r}
+klastry
+```
+
+```{r}
+kolory_klastrow <- klastry$centers %>% 
+  as.tibble() %>% 
+  rownames_to_column(var = "nr_klastra") %>% 
+  mutate(kolor_hex = rgb(R, G, B))
+
+kolory_klastrow
+```
+
+```{r}
+library(broom)
+```
+
+```{r}
+z_nowym_kolorem <- klastry %>% 
+  augment(obraz_ramka) %>% 
+  select(-c(R, G, B)) %>% 
+  left_join(kolory_klastrow %>% select(-c(R, G, B)), by = c(".cluster" = "nr_klastra"))
+
+z_nowym_kolorem
+```
+
+```{r}
+p2 <- z_nowym_kolorem %>% 
+  ggplot(aes(Var2, Var1)) +
+  geom_point(color = z_nowym_kolorem$kolor_hex) +
+  scale_y_reverse() +
+  ggtitle("k-średnich: liczba klastrów = 8") +
+  theme_void() 
+
+p2
+```
+
+```{r}
+library(patchwork)
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 5
+
+p1 + p2
+```
+
+```{r}
+kobraz <- function(obraz, ilosc_klastrow=8, ziarno=67){
+  obraz_R <- obraz[,,1] %>% melt(value.name = "R")
+  obraz_G <- obraz[,,2] %>% melt(value.name = "G")
+  obraz_B <- obraz[,,3] %>% melt(value.name = "B")
+  obraz_ramka <- obraz_R %>% left_join(obraz_G) %>% left_join(obraz_B)
+  
+  p1 <- obraz_ramka_hex %>% 
+  ggplot(aes(Var2, Var1)) +
+  geom_point(color = obraz_ramka_hex$prawdziwy_kolor_hex) +
+  scale_y_reverse() +
+  ggtitle("Oryginał") +
+  theme_void()
+
+  set.seed(ziarno)
+  klastry <- obraz_ramka_hex %>%
+  select(R, G, B) %>%
+  kmeans(centers = ilosc_klastrow, iter.max = 100, nstart = 25)
+  kolory_klastrow <- klastry$centers %>% 
+  as.tibble() %>% 
+  rownames_to_column(var = "nr_klastra") %>% 
+  mutate(kolor_hex = rgb(R, G, B))
+  
+  z_nowym_kolorem <- klastry %>% 
+  augment(obraz_ramka) %>% 
+  select(-c(R, G, B)) %>% 
+  left_join(kolory_klastrow %>% select(-c(R, G, B)), by = c(".cluster" = "nr_klastra"))
+
+  p2 <- z_nowym_kolorem %>% 
+  ggplot(aes(Var2, Var1)) +
+  geom_point(color = z_nowym_kolorem$kolor_hex) +
+  scale_y_reverse() +
+  ggtitle("k-średnich: liczba klastrów = ",ilosc_klastrow) +
+  theme_void()
+
+  p1 + p2
+}
+```
+
+```{r}
+kobraz(obraz, 8, 67)
+```

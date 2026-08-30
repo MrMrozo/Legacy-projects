@@ -1,0 +1,29 @@
+---
+title: "QrtShiny2"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+imiona <- read_csv("imiona.csv")
+imiona
+```
+
+```{r}
+wybrane_imiona <- c("Anna", "Piotr")
+
+imiona %>% 
+  filter(imie %in% wybrane_imiona, between(rok, 2005, 2015)) %>% 
+  group_by(imie, rok) %>% 
+  summarise(ile_razy = sum(liczba)) %>%  
+  ggplot(aes(x = rok, y = ile_razy, color = imie)) +
+  geom_line() +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = 2004:2016) +
+  scale_color_brewer(palette = "Set1") +
+  theme_minimal()
+```

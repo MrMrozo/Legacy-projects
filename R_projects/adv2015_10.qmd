@@ -1,0 +1,50 @@
+---
+title: "adv2015_10"
+format: html
+editor: visual
+---
+
+```{r}
+input <- "1113122113"
+```
+
+```{r}
+for (i in 1:4) {
+  
+  ile <- input %>% 
+    str_extract_all("(\\d)\\1*") %>% 
+    unlist() %>% 
+    str_length()
+  
+  co <- input %>% 
+    str_extract_all("(\\d)\\1*") %>% 
+    unlist() %>% 
+    str_sub(1, 1)
+  input <- paste0(ile, co, collapse = "")
+}
+```
+
+```{r}
+str_length(input)
+```
+
+```{r}
+dalej <- function(x) {
+  ile <- input %>% 
+    str_extract_all("(\\d)\\1*") %>% 
+    unlist() %>% 
+    str_length()
+  
+  co <- input %>% 
+    str_extract_all("(\\d)\\1*") %>% 
+    unlist() %>% 
+    str_sub(1, 1)
+  input <<- paste0(ile, co, collapse = "")
+}
+```
+
+```{r}
+1:40 %>% 
+  map(.f = dalej) %>% 
+  str_length()
+```
